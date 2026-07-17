@@ -1,46 +1,9 @@
 {
-  "id": "/",
-  "name": "TBM 통합관리 시스템",
-  "short_name": "TBM관리",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
-  "orientation": "any",
-  "background_color": "#0c3221",
-  "theme_color": "#0c3221",
-  "lang": "ko",
-  "dir": "ltr",
-  "categories": ["business", "productivity", "utilities"],
-  "description": "제조업 현장의 TBM(Tool Box Meeting) 교육내용 자동생성·등록, 실시율 점검, 증빙 관리를 지원하는 안전보건 통합관리 시스템",
-  "prefer_related_applications": false,
-  "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ],
-  "shortcuts": [
-    {
-      "name": "TBM 등록",
-      "short_name": "등록",
-      "description": "오늘의 TBM 교육일지를 등록합니다",
-      "url": "./index.html?tab=register",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "내 현황",
-      "short_name": "현황",
-      "description": "반기 진행률과 실시 현황을 확인합니다",
-      "url": "./index.html?tab=status",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "대시보드",
-      "short_name": "대시보드",
-      "description": "전 부서 실시율을 점검합니다",
-      "url": "./index.html?tab=dashboard",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
-    }
-  ]
+  "name": "tbm-management",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
 }
