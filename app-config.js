@@ -1,48 +1,15 @@
-import { getStore } from "@netlify/blobs";
+/* ============================================================
+   TBM 통합관리 시스템 · 백엔드 설정
+   현재 구성: Netlify(호스팅 + 서버 Functions + 저장소 Blobs)
+   - "netlify" : Netlify Functions+Blobs 사용 (별도 DB 서비스 불필요)
+   - "supabase": Supabase 사용
+   - 비우면    : 로컬 저장(이 기기 전용)
+   ============================================================ */
+window.TBM_BACKEND = "netlify";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-TBM-License"
-};
-
-function checkLicense(req){
-  const raw = process.env.TBM_LICENSES || "";
-  const allowed = raw.split(",").map(s=>s.trim()).filter(Boolean);
-  if(!allowed.length) return true;
-  let key = "";
-  try{
-    key = (req.headers.get("x-tbm-license") || new URL(req.url).searchParams.get("lic") || "").trim();
-  }catch(e){}
-  return !!key && allowed.indexOf(key) >= 0;
-}
-
-export default async (req) => {
-  const store = getStore("tbm-photos");
-  const url = new URL(req.url);
-  if (req.method === "OPTIONS") return new Response("", { headers: CORS });
-  // 사진 업로드는 라이선스 필수 (조회는 <img> 태그라 헤더를 못 실어 허용)
-  if (req.method === "POST" && !checkLicense(req)) {
-    return new Response(JSON.stringify({ error: "license_required" }),
-      { status: 401, headers: { ...CORS, "Content-Type": "application/json" } });
-  }
-  try {
-    if (req.method === "POST") {
-      const name = (url.searchParams.get("name") || (Date.now() + ".jpg")).replace(/[^\w.\-]/g, "_");
-      const buf = await req.arrayBuffer();
-      await store.set(name, buf, { metadata: { contentType: "image/jpeg" } });
-      return new Response(JSON.stringify({ url: url.origin + "/.netlify/functions/photo?key=" + encodeURIComponent(name) }),
-        { headers: { ...CORS, "Content-Type": "application/json" } });
-    }
-    if (req.method === "GET") {
-      const key = url.searchParams.get("key");
-      if (!key) return new Response("no key", { status: 400, headers: CORS });
-      const data = await store.get(key, { type: "arrayBuffer" });
-      if (!data) return new Response("not found", { status: 404, headers: CORS });
-      return new Response(data, { headers: { ...CORS, "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=31536000, immutable" } });
-    }
-    return new Response("Method Not Allowed", { status: 405, headers: CORS });
-  } catch (e) {
-    return new Response(String(e && e.message || e), { status: 500, headers: CORS });
-  }
-};
+/* 서버 동기화 간격(초). 무료 사용량 절약을 위해 기본 30초.
+   - 화면이 보이는 동안에만, 그리고 최근 5분 내 조작이 있을 때만 조회합니다.
+   - 탭을 숨기거나 자리를 비우면 자동으로 조회를 멈춥니다.
+   - 더 아끼려면 60~120 으로 늘리세요(반영이 그만큼 느려짐).
+   - 언제든 상단의 "↻ 새로고침" 버튼으로 즉시 최신화할 수 있습니다. */
+window.TBM_SYNC_SECONDS = 30;
