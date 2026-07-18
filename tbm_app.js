@@ -1152,9 +1152,9 @@ function viewRegister(){
             <button class="btn sm ghost regen no-print" data-act="regRegen" data-i="${i}" title="이 항목 재생성">⟳ 재생성</button>
             <div class="lab"><span class="num">${i+1}</span><span class="t">위험요인</span>
               <span class="src ${(srcMap[it.src]||srcMap.common)[0]}">${(srcMap[it.src]||srcMap.common)[1]}</span></div>
-            <textarea data-ri="${i}" data-rk="h" rows="2">${esc(it.h)}</textarea>
+            <textarea data-ri="${i}" data-rk="h" rows="2" aria-label="위험요인 ${i+1}">${esc(it.h)}</textarea>
             <div class="m-lab">↳ 위험방지대책</div>
-            <textarea data-ri="${i}" data-rk="m" rows="2">${esc(it.m)}</textarea>
+            <textarea data-ri="${i}" data-rk="m" rows="2" aria-label="위험방지대책 ${i+1}">${esc(it.m)}</textarea>
           </div>`).join("")}
       </div>
       <div class="divider"></div>
@@ -1191,9 +1191,9 @@ function renderRegItems(){
       <button class="btn sm ghost regen no-print" data-act="regRegen" data-i="${i}" title="이 항목 재생성">⟳ 재생성</button>
       <div class="lab"><span class="num">${i+1}</span><span class="t">위험요인</span>
         <span class="src ${(srcMap[it.src]||srcMap.common)[0]}">${(srcMap[it.src]||srcMap.common)[1]}</span></div>
-      <textarea data-ri="${i}" data-rk="h" rows="2">${esc(it.h)}</textarea>
+      <textarea data-ri="${i}" data-rk="h" rows="2" aria-label="위험요인 ${i+1}">${esc(it.h)}</textarea>
       <div class="m-lab">↳ 위험방지대책</div>
-      <textarea data-ri="${i}" data-rk="m" rows="2">${esc(it.m)}</textarea>
+      <textarea data-ri="${i}" data-rk="m" rows="2" aria-label="위험방지대책 ${i+1}">${esc(it.m)}</textarea>
     </div>`).join("");
 }
 
@@ -1603,8 +1603,8 @@ function viewSettings(){
       <div class="team-list">
         ${teams.map((t,i)=>`<div class="team-row">
           <span class="tnum">${i+1}</span>
-          <input type="text" data-team-i="${i}" data-team-k="name" value="${esc(t.name)}" placeholder="부서명">
-          <select data-team-i="${i}" data-team-k="contentCat">
+          <input type="text" data-team-i="${i}" data-team-k="name" value="${esc(t.name)}" placeholder="부서명" aria-label="부서명 ${i+1}">
+          <select data-team-i="${i}" data-team-k="contentCat" aria-label="교육콘텐츠 카테고리 ${i+1}">
             <option value="${t.id}" ${t.contentCat===t.id?'selected':''}>이 부서 전용 콘텐츠</option>
             ${deptCats().filter(c=>c.id!==t.id).map(c=>`<option value="${c.id}" ${t.contentCat===c.id?'selected':''}>${esc(c.name)} 콘텐츠 재사용</option>`).join("")}
             ${customDeptCats().filter(c=>c.id!==t.id).map(c=>`<option value="${c.id}" ${t.contentCat===c.id?'selected':''}>${esc(c.name)} 콘텐츠 재사용</option>`).join("")}
@@ -1631,7 +1631,7 @@ function viewSettings(){
         <button class="btn" data-act="importData">⬆ 데이터 가져오기</button>
         <button class="btn danger" data-act="resetData">전체 초기화</button>
       </div>
-      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" aria-label="데이터 가져오기 파일 선택">
     </div>
   </div>`;
 }
@@ -1822,7 +1822,8 @@ function viewHelp(){
 /* =========================================================================
    모달 & 상세 / 인쇄
    ========================================================================= */
-function openModal(title, html){ $("#modalTitle").textContent=title; $("#modalBody").innerHTML=html; $("#modal").classList.add("on"); }
+function openModal(title, html){ $("#modalTitle").textContent=title; $("#modalBody").innerHTML=html; $("#modal").classList.add("on");
+  setTimeout(()=>{ const el=$("#modalBody").querySelector("input:not([type=hidden]):not([readonly]),textarea:not([readonly]),select"); if(el){ try{ el.focus(); }catch(e){} } }, 30); }
 function closeModal(){ $("#modal").classList.remove("on"); }
 
 function recDetailHTML(r){
@@ -2180,6 +2181,7 @@ document.addEventListener("click", e=>{
     regRegenAll(); return;
   }
   if(act==="regGenConfirm"){ closeModal(); regRegenAll(); return; }
+  if(act==="regSeasonConfirm"){ state.reg.seasonOn=b.dataset.on==="1"; closeModal(); regRegenAll(); renderView(); return; }
   if(act==="regRegen"){
     const i=+b.dataset.i, team=DB.team(state.teamId);
     state.reg.items[i]=regenOne(team?team.contentCat:"all", parseYmd(state.reg.date).getMonth()+1, state.reg.seasonOn, state.reg.items, i);
@@ -2401,7 +2403,16 @@ document.addEventListener("change", e=>{
   if(f==="recTo"){ state.recTo=t.value; renderView(); return; }
   if(t.id==="regPhotoInput"){ addRegPhotos(t.files); t.value=""; return; }
   if(f==="halfKey"){ state.halfKey=t.value; renderView(); return; }
-  if(t.dataset.act==="regSeason"){ state.reg.seasonOn=t.checked; regRegenAll(); renderView(); return; }
+  if(t.dataset.act==="regSeason"){
+    const want=t.checked;
+    if(state.reg.edited && state.reg.items && state.reg.items.length){
+      t.checked=!want;   // 확인 전까지 시각 상태 되돌림
+      openModal("계절 항목 포함 변경", `<p class="mb-note">직접 수정한 내용이 있습니다. 계절 항목 포함 설정을 바꾸면 교육내용이 <b>전체 재생성</b>되어 지금 입력·수정한 내용이 바뀝니다. 계속할까요?</p>
+        <div class="btn-row" style="margin-top:14px"><button class="btn primary" data-act="regSeasonConfirm" data-on="${want?1:0}">계속</button><button class="btn" data-act="closeModal">취소</button></div>`);
+      return;
+    }
+    state.reg.seasonOn=want; regRegenAll(); renderView(); return;
+  }
   if(t.dataset.dow!=null){ const lab=t.closest("label"); if(lab) lab.classList.toggle("on",t.checked); return; }
   if(t.dataset.ax==="active"){ const txt=t.closest(".switch-row")?.querySelector(".switch-txt"); if(txt) txt.textContent=t.checked?"사용 중":"사용 안 함"; return; }
   if(t.id==="importFile"){ if(t.files&&t.files[0]) doImport(t.files[0]); return; }
@@ -2414,8 +2425,17 @@ document.addEventListener("input", e=>{
   if(f==="regMin"){ state.reg.minutes=+t.value||DB.settings().sessionMinutes; return; }
   if(f==="regAtt"){ state.reg.attendees=t.value; return; }
   if(f==="regNote"){ state.reg.note=t.value; return; }
-  if(f==="cmSearch"){ state.cmSearch=t.value; renderView(); const s=$('[data-f=cmSearch]'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); } return; }
-  if(f==="recSearch"){ state.recSearch=t.value; renderView(); const s=$('[data-f=recSearch]'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); } return; }
+  if(f==="cmSearch"){ state.cmSearch=t.value; if(e.isComposing) return; renderView(); const s=$('[data-f=cmSearch]'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); } return; }
+  if(f==="recSearch"){ state.recSearch=t.value; if(e.isComposing) return; renderView(); const s=$('[data-f=recSearch]'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); } return; }
+});
+
+/* 한글 조합(IME) 종료 시 검색 필터 확정 반영 — 조합 중 재렌더로 자모 깨짐 방지 */
+document.addEventListener("compositionend", e=>{
+  const t=e.target, f=t.dataset&&t.dataset.f;
+  if(f!=="cmSearch" && f!=="recSearch") return;
+  if(f==="cmSearch") state.cmSearch=t.value; else state.recSearch=t.value;
+  renderView();
+  const s=$(`[data-f=${f}]`); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); }
 });
 
 /* 모달 배경 클릭 닫기 */
@@ -2425,7 +2445,15 @@ $("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(
 
 /* 키보드: Enter 로그인 / Esc 닫기 */
 document.addEventListener("keydown", e=>{
-  if(e.key==="Enter" && (e.target.id==="loginUser" || e.target.id==="loginPw")){ e.preventDefault(); doLogin(); return; }
+  if(e.key==="Enter" && e.target && e.target.tagName!=="TEXTAREA"){
+    const id=e.target.id;
+    if(id==="loginUser"||id==="loginPw"){ e.preventDefault(); doLogin(); return; }
+    if(id==="prUser"||id==="prKey"||id==="prPw"||id==="prPw2"){ e.preventDefault(); submitPwReset(); return; }
+    if(id==="naName"||id==="naUser"||id==="naPw"||id==="naTarget"){ e.preventDefault(); document.querySelector('[data-act=accAdd]')?.click(); return; }
+    if(id==="ntName"){ e.preventDefault(); document.querySelector('[data-act=addTeamNamed]')?.click(); return; }
+    if(id==="connCode"){ e.preventDefault(); applyConnCode(); return; }
+    if(id==="licInput"){ e.preventDefault(); applyLicKey(); return; }
+  }
   if(e.key==="Escape"){
     const lb=$("#lightbox"); if(lb && lb.classList.contains("on")){ closePhoto(); return; }
     const m=$("#modal"); if(m && m.classList.contains("on")){ closeModal(); }
