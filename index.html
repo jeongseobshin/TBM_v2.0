@@ -116,7 +116,7 @@ textarea{resize:vertical;min-height:46px;line-height:1.45}
 .btn.primary:hover{background:linear-gradient(180deg,#1a7a4a,#0f5c37)}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--safe-d)}
 .btn.ghost:hover{background:var(--safe-l)}
-.btn.sm{padding:7px 11px;font-size:12px;border-radius:8px}
+.btn.sm{padding:7px 11px;font-size:12px;border-radius:8px;min-height:34px}
 .btn.lg{padding:13px 22px;font-size:15px}
 .btn.danger{color:var(--danger);border-color:#e6c3bc;background:#fff}
 .btn.danger:hover{background:#fbeeeb}
@@ -322,7 +322,7 @@ textarea{resize:vertical;min-height:46px;line-height:1.45}
 .acc-nm{font-weight:800;font-size:14.5px;letter-spacing:-.2px;display:flex;align-items:center;gap:6px}
 .acc-sub{font-size:11.5px;color:var(--muted);font-family:var(--f-mono);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acc-flag{font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;background:var(--danger-l);color:var(--danger);letter-spacing:.2px}
-.acc-card-del{flex:none;border:1px solid #e6c3bc;background:#fff;color:var(--danger);font-weight:700;font-size:11.5px;padding:5px 11px;border-radius:8px;transition:background .15s}
+.acc-card-del{flex:none;border:1px solid #e6c3bc;background:#fff;color:var(--danger);font-weight:700;font-size:11.5px;padding:5px 11px;border-radius:8px;min-height:32px;transition:background .15s}
 .acc-card-del:hover{background:#fbeeeb}
 .acc-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .acc-card-grid .field.full{grid-column:1/-1}
@@ -368,7 +368,7 @@ textarea{resize:vertical;min-height:46px;line-height:1.45}
 @keyframes pop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
 .modal-card .mh{padding:17px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#fff}
 .modal-card .mh h3{margin:0;font-size:16px}
-.modal-card .mh .x{margin-left:auto;border:none;background:none;font-size:22px;color:var(--muted);line-height:1;width:30px;height:30px;border-radius:8px}
+.modal-card .mh .x{margin-left:auto;border:none;background:none;font-size:22px;color:var(--muted);line-height:1;width:36px;height:36px;border-radius:8px}
 .modal-card .mh .x:hover{background:#f2f5f2;color:var(--ink)}
 .modal-card .mb{padding:22px}
 .dtable{width:100%;border-collapse:collapse;font-size:13px}
@@ -452,7 +452,7 @@ textarea{resize:vertical;min-height:46px;line-height:1.45}
 <body>
 <div id="gate"></div>
 <div id="app"></div>
-<div id="modal"><div class="modal-card"><div class="mh"><h3 id="modalTitle"></h3><button class="x" data-act="closeModal">×</button></div><div class="mb" id="modalBody"></div></div></div>
+<div id="modal"><div class="modal-card"><div class="mh"><h3 id="modalTitle"></h3><button class="x" data-act="closeModal" aria-label="닫기" title="닫기">×</button></div><div class="mb" id="modalBody"></div></div></div>
 <div id="toast"></div>
 <div id="lightbox"></div>
 <script src="app-config.js"></script>
