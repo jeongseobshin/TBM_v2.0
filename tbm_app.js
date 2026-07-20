@@ -489,7 +489,7 @@ const PWA = (function(){
   const W = (typeof window!=="undefined") ? window : {};
   const NAV = (typeof navigator!=="undefined") ? navigator : {};
   const ua = String(NAV.userAgent||"");
-  let deferred = null, installed = false;
+  let deferred = null, installed = lsGet("pwaInstalled", false);
 
   const isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && (NAV.maxTouchPoints||0) > 1);
   function isStandalone(){
@@ -500,11 +500,16 @@ const PWA = (function(){
     }catch(e){}
     return false;
   }
-  function canShow(){
-    if(installed || isStandalone()) return false;   // 이미 설치됨 → 버튼 숨김
-    if(deferred) return true;                       // 설치 프롬프트 준비됨(윈도우/안드로이드)
-    if(isIOS) return true;                          // iOS는 안내로 대체
-    return false;
+  const isMobile = isIOS || /Android|Mobile/i.test(ua) || ((NAV.maxTouchPoints||0) > 0 && !!(W.matchMedia && W.matchMedia("(max-width: 820px)").matches));
+  function isInstalled(){ return installed || isStandalone(); }
+  function markInstalled(){ installed = true; try{ lsSet("pwaInstalled", true); }catch(e){} }
+  function hideAutoPrompt(){ return !!lsGet("pwaHidePrompt", false); }
+  function setHideAutoPrompt(v){ try{ lsSet("pwaHidePrompt", !!v); }catch(e){} }
+  /* 상단 설치 버튼: 미설치 → '앱 설치', 설치됨 → '설치 완료'(재설치 확인) */
+  function buttonHtml(){
+    return isInstalled()
+      ? '<button class="tb-btn installed no-print" data-act="installApp" title="이미 설치됨 · 다시 설치하려면 클릭">&#10003; 설치 완료</button>'
+      : '<button class="tb-btn install no-print" data-act="installApp" title="이 기기에 앱으로 설치합니다">&#11015; 앱 설치</button>';
   }
   function bind(){
     try{
@@ -514,13 +519,14 @@ const PWA = (function(){
         if(document.getElementById("app")) mount();  // 버튼 노출
       });
       W.addEventListener("appinstalled", ()=>{
-        installed = true; deferred = null;
+        markInstalled(); deferred = null;
         toast("앱이 설치되었습니다. 홈 화면·바탕화면에서 바로 실행하세요.");
         mount();
       });
     }catch(e){}
   }
-  function promptInstall(){
+  /* 실제 설치 실행 — 프롬프트 지원 환경(Android·데스크톱 크롬/엣지)은 즉시 설치, iOS 등은 안내 */
+  function doInstall(){
     if(deferred){
       try{
         deferred.prompt();
@@ -528,16 +534,43 @@ const PWA = (function(){
         deferred = null;
         if(p && p.then){
           p.then(r=>{
-            if(r && r.outcome === "accepted"){ installed = true; }
+            if(r && r.outcome === "accepted"){ markInstalled(); toast("설치를 진행합니다…"); }
             else { toast("설치를 취소했습니다. 언제든 다시 설치할 수 있습니다."); }
             mount();
           }).catch(()=>{});
         }
-      }catch(e){ toast("설치를 시작하지 못했습니다. 브라우저 메뉴에서 ‘앱 설치’를 사용해 주세요."); }
+      }catch(e){ showGuide(); }
       return;
     }
-    showGuide();
+    showGuide();   // 설치 프롬프트 API가 없는 환경(iOS 사파리 등) → 환경별 안내
   }
+  /* 상단 버튼 클릭 진입점 */
+  function installClick(){
+    if(isInstalled()){
+      openModal("앱 다시 설치", `<p class="mb-note">이 기기에는 이미 앱이 설치되어 있습니다. <b>다시 설치</b>할까요?</p>
+        <div class="btn-row" style="margin-top:14px"><button class="btn primary" data-act="pwaReinstall">다시 설치</button><button class="btn" data-act="closeModal">닫기</button></div>`);
+      return;
+    }
+    doInstall();
+  }
+  function reinstall(){ closeModal(); doInstall(); }
+  /* 모바일 첫 방문 설치 팝업 (제일 먼저 노출) */
+  let autoShown = false;
+  function maybeAutoPrompt(){
+    if(autoShown || !isMobile || isInstalled() || hideAutoPrompt()) return;
+    autoShown = true;
+    setTimeout(()=>{ if(!isInstalled() && !hideAutoPrompt()) openInstallPopup(); }, 1200);
+  }
+  function openInstallPopup(){
+    openModal("앱 설치", `
+      <p class="mb-note">홈 화면에 <b>TBM 앱</b>을 설치하면 주소창 없이 더 빠르게 열 수 있습니다.<br><b>앱을 설치하시겠습니까?</b></p>
+      <label class="pwa-dontshow"><input type="checkbox" id="pwaDontShow"> 다시 보지 않기</label>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn primary lg" data-act="pwaInstallYes">네, 설치</button>
+        <button class="btn" data-act="pwaInstallClose">닫기</button>
+      </div>`);
+  }
+  function readDontShow(){ const el=document.getElementById("pwaDontShow"); if(el && el.checked) setHideAutoPrompt(true); }
   function showGuide(){
     const iosBody = `
       <p class="mb-note">아이폰·아이패드는 <b>사파리(Safari)</b>에서 아래 순서로 홈 화면에 추가하면 앱처럼 사용할 수 있습니다.</p>
@@ -556,7 +589,7 @@ const PWA = (function(){
       </ol>`;
     openModal("앱으로 설치하기", isIOS ? iosBody : etcBody);
   }
-  return { bind, canShow, promptInstall, showGuide, isIOS, isStandalone };
+  return { bind, buttonHtml, installClick, doInstall, reinstall, showGuide, maybeAutoPrompt, openInstallPopup, readDontShow, isInstalled, isIOS, isMobile, isStandalone };
 })();
 
 /* 서버에서 받아온 최신 데이터를 로컬에도 저장 → 새로고침/오프라인 재접속 시 최신본 유지 */
@@ -931,7 +964,7 @@ function shell(){
     <div class="spacer"></div>
     <span class="sync-badge ${REMOTE.enabled&&!REMOTE.degraded?'on':''} ${REMOTE.degraded?'warn':''} no-print" title="${REMOTE.enabled?(REMOTE.degraded?'서버에 연결하지 못함 — 이 기기에만 저장 중':'여러 디바이스 공유 사용 중 ('+REMOTE.mode+')'):'이 기기에만 저장(로컬)'}">${!REMOTE.enabled?'&#9679; 로컬':(REMOTE.degraded?'&#9888; 서버 미연결':(REMOTE.mode==='supabase'?'&#9729; 실시간 공유':'&#9729; 공유'))}</span>
     ${REMOTE.enabled?'<button class="tb-btn no-print" data-act="syncNow" title="지금 서버에서 최신 데이터 불러오기">&#8635; 새로고침</button>':''}
-    ${PWA.canShow()?'<button class="tb-btn install no-print" data-act="installApp" title="이 기기에 앱으로 설치합니다">&#11015; 앱 설치</button>':''}
+    ${PWA.buttonHtml()}
     <span class="who no-print">${esc(who)}</span>
     <span class="role-pill ${state.role==='admin'?'admin':''}"><span class="dot"></span>${roleName(state.role)}</span>
     <button class="tb-btn no-print" data-act="logout" title="로그아웃">⏻ 로그아웃</button>
@@ -2136,8 +2169,11 @@ document.addEventListener("click", e=>{
   if(act==="pwResetSubmit"){ submitPwReset(); return; }
   if(act==="logout"){ DB.clearSession(); state.role=null; state.account=null; state.teamId=null; mount(); return; }
   if(act==="closeModal"){ closeModal(); return; }
-  if(act==="installApp"){ PWA.promptInstall(); return; }
+  if(act==="installApp"){ PWA.installClick(); return; }
   if(act==="installHelp"){ PWA.showGuide(); return; }
+  if(act==="pwaReinstall"){ PWA.reinstall(); return; }
+  if(act==="pwaInstallYes"){ PWA.readDontShow(); closeModal(); PWA.doInstall(); return; }
+  if(act==="pwaInstallClose"){ PWA.readDontShow(); closeModal(); return; }
   if(act==="licApply"){ applyLicKey(); return; }
   if(act==="connApply"){ applyConnCode(); return; }
   if(act==="connManual"){ openConnManual(); return; }
@@ -2687,6 +2723,7 @@ function boot(){
   const s=DB.settings(); state.reg.minutes=s.sessionMinutes; state.reg.seasonOn=s.seasonDefaultOn;
   applyShortcutTab();   // 앱 아이콘 바로가기(?tab=)로 실행된 경우 해당 화면으로 이동
   mount();
+  PWA.maybeAutoPrompt();   // 모바일 첫 방문 시 설치 팝업(제일 먼저)
 }
 
 /* 원격 변경 수신 시 화면 갱신(입력 중이거나 변경 없으면 건너뜀) */
